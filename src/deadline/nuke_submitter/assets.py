@@ -81,15 +81,52 @@ def get_scene_asset_references() -> AssetReferences:
             for filename in get_node_filenames(node):
                 asset_references.output_directories.add(dirname(filename))
 
-    # if using a custom OCIO config, add the config file and associated search directories
-    if nuke_ocio.is_custom_config_enabled():
-        ocio_config_path = nuke_ocio.get_custom_config_path()
-        ocio_config_search_paths = nuke_ocio.get_config_absolute_search_paths(ocio_config_path)
+    # Are we using OCIO
+    if nuke_ocio.is_OCIO_enabled():
+        
+        # Determine and add the config file and associated search directories
+        ocio_config_path = None
 
-        asset_references.input_filenames.add(ocio_config_path)
+        # if using a custom OCIO env variable...
+        if nuke_ocio.is_env_config_enabled(): 
+            
+            nuke.tprint("OCIO configured via environment")
+            ocio_config_path = nuke_ocio.get_env_config_path()
 
-        for search_path in ocio_config_search_paths:
-            asset_references.input_directories.add(search_path)
+        else:
+                
+            # if using a custom OCIO config...
+            if nuke_ocio.is_custom_config_enabled():
+            
+                nuke.tprint("OCIO configured via cust config.")
+                ocio_config_path = nuke_ocio.get_custom_config_path()
+
+            elif nuke_ocio.is_UI_config_enabled():
+
+                nuke.tprint("OCIO configured via UI defined config.")
+                ocio_config_path = nuke_ocio.get_UI_config_path()
+
+        # Add the references    
+        if ocio_config_path is not None:
+
+            # Check if a file has been specified
+            # NOTE saving a nuke script with an empty custom OCIO file
+            # Seems to crash Nuke when trying to reload it.
+            if os.path.isfile(ocio_config_path) :
+
+                nuke.tprint('OCIO config file: %s' % ocio_config_path) 
+                asset_references.input_filenames.add(ocio_config_path)
+
+                ocio_config_search_paths = nuke_ocio.get_config_absolute_search_paths(ocio_config_path)
+
+                for search_path in ocio_config_search_paths:
+                    nuke.tprint("OCIO Search Path: %s" % search_path)
+                    asset_references.input_directories.add(search_path)
+            else:
+
+                # Prompt the user.
+                nuke.alert('OCIO config file specified(%s) is not an existing file.' % ocio_config_path) 
+
 
     return asset_references
 

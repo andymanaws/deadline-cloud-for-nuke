@@ -8,6 +8,30 @@ from pathlib import PurePath
 import nuke
 import PyOpenColorIO as OCIO
 
+def is_env_config_enabled() -> bool:
+    """True if the OCIO environment variable is specified"""
+    return 'OCIO' in os.environ
+
+def get_env_config_path() -> str:
+    """This is the path to the custom OCIO config used by the OCIO env var."""
+    return os.environ.get('OCIO')
+
+def is_UI_config_enabled() -> bool:
+    """True if the script is using a custom OCIO config"""
+    return (
+        nuke.root().knob("colorManagement").value() == "OCIO"
+        and nuke.root().knob("OCIO_config").value() != "custom"
+    )
+
+def get_UI_config_path() -> str:
+    """This is the path to the UI defined OCIO config file."""
+    return nuke.root().knob("OCIOConfigPath").getEvaluatedValue()
+
+
+def is_OCIO_enabled() -> bool:
+    """Nuke is set to use OCIO."""
+    return nuke.root().knob("colorManagement").value() == "OCIO" 
+
 
 def is_custom_config_enabled() -> bool:
     """True if the script is using a custom OCIO config"""
@@ -20,7 +44,6 @@ def is_custom_config_enabled() -> bool:
 def get_custom_config_path() -> str:
     """This is the path to the custom OCIO config used by the script"""
     return nuke.root().knob("customOCIOConfigPath").getEvaluatedValue()
-
 
 def create_config_from_file(ocio_config_path: str) -> OCIO.Config:
     """Creates an OCIO config from the custom OCIO config path"""
